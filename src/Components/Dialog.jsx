@@ -2,8 +2,12 @@ import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogAc
 import React, { forwardRef, useRef, useState } from 'react';
 import Slide from '@mui/material/Slide';
 import { router } from '../App';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from 'react-router-dom';
 import Chat from './Chat';
+import { documents } from '../App';
+import { auth } from '../lib/Firebase';
+import { setUsers } from '../App';
 
 let rememberMe = false;
 
@@ -51,22 +55,105 @@ export default function Dialogue(props) {
 
     }
 
-    const send = (event) => {
+    const send = async (event) => {
+        const login = (user) => {
+            signInWithEmailAndPassword(auth,user.mail,user.pass).then((userCredential) => {
+                if(user.name == undefined)
+                {
+                    user.name = getName(user.mail);
+                }                    
+                const newRoute = {
+                    path:'/' + userRef.name.current.value,
+                    element: <Chat user={user}/>
+                };
+                router.routes.push(newRoute);
+                navigator(newRoute.path);
+                props.setOpen(false);
+            }).catch((err) => {
+                setMessage('An error occurred: ' + err);
+            })
+
+
+        }
+
         if(message != '')
             setMessage('Please enter valid credentials')
         if(router.length > 3)
         {
             setMessage('No servers available at the moment')
         } else {
-            const newRoute = {
-                path:'/' + userRef.name.current.value,
-                element: <Chat name={userRef.name.current.value}/>
-            };
-            router.routes.push(newRoute);
-            navigator(newRoute.path);
-            props.setOpen(false);
+            const mess = await handleAuthentication();
+            if(mess != '')
+            {
+                setMessage(mess);
+            } else {
+                const user = {
+                    name:userRef.name.current.value,
+                    mail:userRef.mail.current.value,
+                    pass: userRef.pass.current.value
+                };
+                localStorage.setItem('remember',rememberMe);
+                if(rememberMe) {
+                    localStorage.setItem('name',user.name);
+                    localStorage.setItem('mail',user.mail);
+                    localStorage.setItem('pass',user.pass);
+                }
+                login(user);
+            }
         }
     }
+
+    const handleAuthentication = async () => {
+        const user = {
+            name:userRef.name.current.value,
+            mail:userRef.mail.current.value,
+            pass: userRef.pass.current.value
+        };
+        let error = '';
+        let accountExists = false;
+        documents.docs.forEach((doc) => {
+            if(user.mail == doc.data().mail) {
+                accountExists = true;
+                if(user.name != doc.data().name) {
+                    error = 'E-mail did not match the username';
+                }
+            }
+            else if(user.mail != doc.data().mail && user.name == doc.data().name) {
+                error = 'Username Already Exists';
+            }
+        });
+
+        if(accountExists && error == '') {
+            signInWithEmailAndPassword(auth,user.mail,user.pass).then((userCredential) => {
+                error = '';
+            }).catch((err) => {
+                error = err;
+            })
+
+        } else if(!accountExists && error == '') {
+            createUserWithEmailAndPassword(auth,user.mail,user.pass).then((userCredential) => {
+                error = '';
+            }).catch((err) => {
+                error = err;
+            });
+
+            if(error == '') {
+                await setUsers(user,null,0,false);
+            }
+
+        } else {
+            error = 'Invalid Credentials';
+        }
+
+        
+        return error;
+
+    }
+
+
+
+
+
     return (
 
         <>
@@ -111,4 +198,16 @@ export default function Dialogue(props) {
     );
 
 
+}
+
+
+export function getName(mail) {
+    let name = '0';
+    documents.docs.forEach((val) => {
+        if(val.data().mail == mail) {
+            name = val.data().name;
+        }
+    })
+
+    return name;
 }

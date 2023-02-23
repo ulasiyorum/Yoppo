@@ -1,9 +1,49 @@
 import React, { useState } from "react";
 import Auth from "./Auth";
-
+import { auth } from "../lib/Firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { documents } from "../App";
+import { useNavigate } from "react-router-dom";
+import Chat from "./Chat";
+import { router } from "../App";
 export default function Body(props) {
-
+    const navigator = useNavigate();
     const [open, setOpen] = useState(false);
+
+    const login = (user) => {
+        
+        signInWithEmailAndPassword(auth,user.mail,user.pass).then((userCredential) => {
+            if(user.name == undefined)
+            {
+                user.name = getName(user.mail);
+            }                    
+            const newRoute = {
+                path:'/' + user.name,
+                element: <Chat user={user}/>
+            };
+            router.routes.push(newRoute);
+            navigator(newRoute.path);
+            setOpen(false);
+        }).catch((err) => {
+            console.log(err);
+        });
+
+    }
+
+    const getStarted = (event) => {
+        
+        if(localStorage.getItem('remember').toString() == 'true' && !open)
+        {    
+            const user = {
+                mail:localStorage.getItem('mail'),
+                pass:localStorage.getItem('pass')
+            }
+            login(user);
+        }
+        else {
+            setOpen(true);
+        }
+    }
 
     return (
 
@@ -17,11 +57,22 @@ export default function Body(props) {
             after:absolute after:bottom-0 after:left-0 after:w-60 after:h-16 after:bg-gradient-to-b after:from-orange-400 after:to-orange-500
             after:-z-20 after:rounded-full
             tracking-wider drop-shadow-md active:scale-90
-            " onClick={() => setOpen(true)}
+            " onClick={getStarted}
             >GET STARTED</button>
             <Auth open={open} setOpen={setOpen}/>
         </div>
 
     );
+}
 
+
+function getName(mail) {
+    let name = '';
+    documents.docs.forEach((val) => {
+        if(val.data().mail == mail) {
+            name = val.data().name;
+        }
+    })
+
+    return name;
 }
