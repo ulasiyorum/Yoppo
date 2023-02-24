@@ -10,16 +10,26 @@ import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 
 function App() {
   const [docs,setDocs] = useState(null);
+  useEffect(() => {
+    const setDocs = async () => {
 
-  return (
+      const documentss = await fetchUsers();
+      documents = documentss;
+      router = createBrowserRouter(getOpenRoutes(documents));
+      setDocs(documentss);
+      
+    };
+
+  },[]);
+  return ( docs ? ( 
     <div className='bg-gradient-to-b from-white to-orange-50 h-full'>
     <Header/>
     <Body/>
-    </div>
+    </div>) : (<div>Loading...</div>)
   )
 }
-export const documents = await fetchUsers();
-export const router = createBrowserRouter(getOpenRoutes(documents));
+export let documents = null;
+export let router = null;
 
 export async function fetchUsers() {
 

@@ -160,7 +160,7 @@ export default function Chat(props) {
             >
             <MeetingConsumer>
                 {() => <Container 
-                activeSession={activeSession} setActiveSession={setActiveSession} isAdmin={isAdmin()}
+                activeSession={activeSession} setActiveSession={setActiveSession} isAdmin={isAdmin()} name={props.user.name}
                 sessions={sessions} joined={joined} setJoined={setJoined} setSessions={setSessions} meetingId={meetingId} />}
             </MeetingConsumer>
             </MeetingProvider>
@@ -226,7 +226,7 @@ function JoinScreen({ getMeetingAndToken,isAdmin,user,activeSession }) {
     };
 
     return (
-      <div className="container">
+      <div className="container flex h-max w-max m-auto">
         {props.joined ? (
           <div>
             {[...participants.keys()].map((participantId) => (
@@ -234,10 +234,14 @@ function JoinScreen({ getMeetingAndToken,isAdmin,user,activeSession }) {
             ))}
           </div>
         ) : (
-        <div className="flex flex-col h-100">
-            <div className="m-auto">{props.isAdmin && !props.activeSession ? "Meeting is ready!" : "Meeting started!"}</div>
+        <div className="flex flex-col h-100 border-black border-solid border-4 w-96">
+          <div className="m-auto my-14 font-nunito-b">{"WELCOME " + props.name.toUpperCase()}</div>
+            <div className="m-auto
+            my-2 text-3xl font-medium font-nunito-b
+            "
+            >{props.isAdmin && !props.activeSession ? "MEETING IS READY" : "MEETING STARTED!"}</div>
             <button onClick={joinMeeting} className="m-auto relative bg-gradient-to-b from-slate-400 to-slate-500 w-60 h-16 rounded-xl text-center font-nunito-b
-            drop-shadow-md overflow-hidden before:bg-gradient-to-b before:from-slate-400 before:to-slate-500 before:w-60 before:absolute before:h-0 before:left-0 before:bottom-0
+            drop-shadow-md my-14 overflow-hidden before:bg-gradient-to-b before:from-slate-400 before:to-slate-500 before:w-60 before:absolute before:h-0 before:left-0 before:bottom-0
             tracking-widest z-10 before:-z-10 before:brightness-85 hover:before:h-16 transition duration-300 hover:duration-300 before:duration-300 active:scale-90
             ">{props.isAdmin && !props.activeSession ? "START MEETING" : "JOIN"}</button>
             </div>
