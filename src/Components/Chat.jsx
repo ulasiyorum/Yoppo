@@ -218,11 +218,12 @@ function JoinScreen({ getMeetingAndToken,isAdmin,user,activeSession }) {
     const { join } = useMeeting();
     const { participants } = useMeeting();
     const joinMeeting = async () => {
-      if(auth.currentUser != null) {
-      const has = hasParticipant(getName(auth.currentUser.email),props.activeSession);
-      if(has) {
+      let has = false;
+    if(auth.currentUser != null) {
+      has = hasParticipant(getName(auth.currentUser.email),props.activeSession);
+    }
+    if(has) {
         alert('You are already in the meeting!');
-      }
     }
     else {
       props.setJoined(true);
