@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import Auth from "./Auth";
 import { auth } from "../lib/Firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { documents } from "../App";
+import { documents } from "../main";
 import { useNavigate } from "react-router-dom";
 import Chat from "./Chat";
-import { router } from "../App";
+import { router } from "../main";
 export default function Body(props) {
     const navigator = useNavigate();
     const [open, setOpen] = useState(false);

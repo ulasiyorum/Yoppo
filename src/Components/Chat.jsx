@@ -7,7 +7,8 @@ import {
     useParticipant,
   } from "@videosdk.live/react-sdk";
 import { authToken, createMeeting } from "../lib/API";
-import { setUsers, fetchUsers, documents } from "../App";
+import { documents } from "../main";
+import { setUsers, fetchUsers } from "../App";
 import { useLocation } from "react-router-dom";
 import { auth } from "../lib/Firebase";
 import { getName } from "./Dialog";

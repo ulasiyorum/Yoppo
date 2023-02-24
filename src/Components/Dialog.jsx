@@ -1,11 +1,11 @@
 import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox  } from '@mui/material'
 import React, { forwardRef, useRef, useState } from 'react';
 import Slide from '@mui/material/Slide';
-import { router } from '../App';
+import { router } from '../main';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from 'react-router-dom';
 import Chat from './Chat';
-import { documents } from '../App';
+import { documents } from '../main';
 import { auth } from '../lib/Firebase';
 import { setUsers } from '../App';
 
