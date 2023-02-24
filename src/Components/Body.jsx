@@ -31,8 +31,7 @@ export default function Body(props) {
     }
 
     const getStarted = (event) => {
-        
-        if(localStorage.getItem('remember').toString() == 'true' && !open)
+        if(localStorage.getItem('remember') != null && localStorage.getItem('remember').toString() == 'true' && !open)
         {    
             const user = {
                 mail:localStorage.getItem('mail'),

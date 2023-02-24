@@ -40,32 +40,6 @@ export async function setUsers(user,roomId,minutes,streamOpen,date) {
   });
 }
 
-function getOpenRoutes(docs) {
-  if(!docs)
-  {
-    setTimeout(() => {
-      return getOpenRoutes(documents);
-
-    },1000);
-  } else {
-  const routes = [
-    {
-      path:"/",
-      element:<App/>
-    }
-  ]
-
-  const items = docs;
-  items.docs.forEach((doc) => {
-      routes.push({
-        path:doc.data().name,
-        element:<Chat user={doc.data()}/>
-      });
-  });
-  
-  return routes; 
-  }
-}
 
 export default App
 
