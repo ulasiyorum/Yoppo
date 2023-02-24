@@ -223,11 +223,12 @@ function JoinScreen({ getMeetingAndToken,isAdmin,user,activeSession }) {
       if(has) {
         alert('You are already in the meeting!');
       }
-      else {
+    }
+    else {
       props.setJoined(true);
       join();
       }
-    }
+    
     };
 
     return (
