@@ -142,8 +142,11 @@ export default function Chat(props) {
         setMeetingId(meetingId);
         setLoading(false);
     };
-
-    const name = getName(auth.currentUser.email);
+    let name = null;
+    if(auth.currentUser != null)
+    {  
+      name = getName(auth.currentUser.email);
+    }
     function isAdmin() {
         return name == locate.pathname.toString().substring(1,locate.pathname.toString().length)
     }
@@ -215,7 +218,7 @@ function JoinScreen({ getMeetingAndToken,isAdmin,user,activeSession }) {
     const { join } = useMeeting();
     const { participants } = useMeeting();
     const joinMeeting = async () => {
-
+      if(auth.currentUser != null) {
       const has = hasParticipant(getName(auth.currentUser.email),props.activeSession);
       if(has) {
         alert('You are already in the meeting!');
@@ -224,6 +227,7 @@ function JoinScreen({ getMeetingAndToken,isAdmin,user,activeSession }) {
       props.setJoined(true);
       join();
       }
+    }
     };
 
     return (
