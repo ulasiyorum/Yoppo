@@ -13,33 +13,76 @@ import { auth } from "../lib/Firebase";
 import { getName } from "./Dialog";
 
 export default function Chat(props) {
-    const locate = useLocation();
 
+  const [activeSession, setActiveSession] = useState(null);
+  const [joined, setJoined] = useState(false);
+  const locate = useLocation();
+  const [sessions, setSessions] = useState(null);
+  const [meetingId, setMeetingId] = useState(null); 
+    useEffect(() => {
+      const fetchSessions = async() => {
+        if(meetingId == null || sessions != null)
+        {
+          return;
+        }
+        const options = {
+          method: "GET",
+          headers: {
+              "Authorization": import.meta.env.VITE_VIDEO_TOKEN,
+              "Content-Type": "application/json",
+          },
+      };
+      const url= `https://api.videosdk.live/v2/sessions/?${meetingId}=xyz&page=1&perPage=200`;
+      const response = await fetch(url, options);
+      const data = await response.json();
+      setSessions(data);
+      }
+      fetchSessions();
 
+    },[meetingId,joined]);
+    
+    useEffect(() => {
+      
+      if(sessions == null)
+      {
+        return;
+      }
 
-    const [meetingId, setMeetingId] = useState(null);
+      const setActiveSessionWithId = async () => {
 
-    const fetchSessionsDuration = async (roomId) => {
+        const sessionId = getActiveSession(sessions.data);
+
+        if(sessionId == undefined)
+        return;
 
         const options = {
-            method: "GET",
-            headers: {
-                "Authorization": import.meta.env.VITE_VIDEO_TOKEN,
-                "Content-Type": "application/json",
-            },
+          method: "GET",
+          headers: {
+            "Authorization": import.meta.env.VITE_VIDEO_TOKEN,
+            "Content-Type": "application/json",
+          },
         };
-        const url= `https://api.videosdk.live/v2/sessions/?${roomId}=xyz&page=1&perPage=200`;
+        const url= `https://api.videosdk.live/v2/sessions/${sessionId}/participants/active?page=1&perPage=200`;
         const response = await fetch(url, options);
         const data = await response.json();
-        const allTime = calculateTime(data);
-        
-        return allTime;
-    }
+        setActiveSession(data.data);
+        return data.data;
+      }
+      let x = setActiveSessionWithId();
+
+      const fetchSessionsDuration = async () => {
+        const allTime = calculateTime(sessions);
+        await setUsers(props.user,meetingId,allTime,true,new Date());
+      }
+      if(x == undefined)
+        fetchSessionsDuration();
+
+    },[sessions]);
+
 
     const calculateTime = (data) => {
         let sum = 0;
         data.data.forEach((value) => {
-
             const diffTimeB = new Date(value.end) - new Date(value.start);
             const diffTime = Math.ceil(diffTimeB / (1000 * 60));
             sum += diffTime;
@@ -62,9 +105,6 @@ export default function Chat(props) {
         const id = user.data().roomId;
         const meetingId =
         id == null ? await createMeeting({token: authToken}) : id;
-
-        const duration = await fetchSessionsDuration(meetingId);
-        await setUsers(props.user,meetingId,duration,true,new Date());
         setMeetingId(meetingId);
     };
 
@@ -72,7 +112,7 @@ export default function Chat(props) {
     function isAdmin() {
         return name == locate.pathname.toString().substring(1,locate.pathname.toString().length)
     }
-    return authToken && meetingId ? (
+    return authToken && meetingId && sessions ? (
         <MeetingProvider
             config={{
                 meetingId:meetingId,
@@ -83,7 +123,9 @@ export default function Chat(props) {
             token={authToken}
             >
             <MeetingConsumer>
-                {() => <Container meetingId={meetingId} />}
+                {() => <Container 
+                activeSession={activeSession} setActiveSession={setActiveSession}
+                sessions={sessions} joined={joined} setJoined={setJoined} setSessions={setSessions} meetingId={meetingId} />}
             </MeetingConsumer>
             </MeetingProvider>
         ) : props.user && isAdmin() ?
@@ -94,6 +136,19 @@ export default function Chat(props) {
 }
 
 
+const hasParticipant = (uname,data) => {
+  let has = false;
+  data.forEach((value) => {
+    value.participants.forEach((val) => {
+      if(val.name == uname)
+        has = true;
+    });
+
+  });
+  
+  return has;
+
+}
 
 
 function JoinScreen({ getMeetingAndToken }) {
@@ -112,17 +167,24 @@ function JoinScreen({ getMeetingAndToken }) {
 
 
   function Container(props) {
-    const [joined, setJoined] = useState(false);
+
     const { join } = useMeeting();
     const { participants } = useMeeting();
-    const joinMeeting = () => {
-      setJoined(true);
+    const joinMeeting = async () => {
+
+      const has = hasParticipant(getName(auth.currentUser.email),props.activeSession);
+      if(has) {
+        alert('You are already in the meeting!');
+      }
+      else {
+      props.setJoined(true);
       join();
+      }
     };
 
     return (
       <div className="container">
-        {joined ? (
+        {props.joined ? (
           <div>
             {[...participants.keys()].map((participantId) => (
               <VideoComponent key={participantId} participantId={participantId} />
@@ -195,4 +257,16 @@ function JoinScreen({ getMeetingAndToken }) {
         )}
       </div>
     );
+  }
+
+
+  function getActiveSession(data) {
+
+    let d = null;
+    data.forEach((value) => {
+      if(value.end == null)
+        d = value;
+    });
+    if(d != null)
+      return d.id;
   }
