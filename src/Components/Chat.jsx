@@ -7,18 +7,39 @@ import {
     useParticipant,
   } from "@videosdk.live/react-sdk";
 import { authToken, createMeeting } from "../lib/API";
-import { setUsers, fetchUsers } from "../App";
+import { setUsers, fetchUsers, documents } from "../App";
 import { useLocation } from "react-router-dom";
 import { auth } from "../lib/Firebase";
 import { getName } from "./Dialog";
 
 export default function Chat(props) {
-
+  const [loading, setLoading] = useState(true);
   const [activeSession, setActiveSession] = useState(null);
   const [joined, setJoined] = useState(false);
   const locate = useLocation();
   const [sessions, setSessions] = useState(null);
   const [meetingId, setMeetingId] = useState(null); 
+
+  useEffect(() => {
+    const users = documents;
+        let roomId = null;
+        users.docs.forEach((value) => {
+            if(value.data().name == locate.pathname.toString().substring(1,locate.pathname.toString().length))
+            {
+              roomId = value.data().roomId;
+            }
+
+        });
+        if(roomId == null)
+            return;
+        const id = roomId;
+        const meetingId =
+        id == null ? null : id;
+
+        setMeetingId(meetingId);
+
+  });
+
     useEffect(() => {
       const fetchSessions = async() => {
         if(meetingId == null || sessions != null)
@@ -49,12 +70,13 @@ export default function Chat(props) {
       }
 
       const setActiveSessionWithId = async () => {
-
+        setLoading(true);
         const sessionId = getActiveSession(sessions.data);
 
-        if(sessionId == undefined)
+        if(sessionId == undefined) {
+        setLoading(false);
         return;
-
+        }
         const options = {
           method: "GET",
           headers: {
@@ -65,18 +87,16 @@ export default function Chat(props) {
         const url= `https://api.videosdk.live/v2/sessions/${sessionId}/participants/active?page=1&perPage=200`;
         const response = await fetch(url, options);
         const data = await response.json();
+        setLoading(false);
         setActiveSession(data.data);
-        return data.data;
       }
-      let x = setActiveSessionWithId();
+      setActiveSessionWithId();
 
       const fetchSessionsDuration = async () => {
         const allTime = calculateTime(sessions);
         await setUsers(props.user,meetingId,allTime,true,new Date());
       }
-      if(x == undefined)
-        fetchSessionsDuration();
-
+      fetchSessionsDuration();
     },[sessions]);
 
 
@@ -94,25 +114,41 @@ export default function Chat(props) {
     }
 
     const getMeetingAndToken = async () => {
-        const users = await fetchUsers();
+        setLoading(true);
+        const users = documents;
+        let roomId = null;
         let user = null;
         users.docs.forEach((value) => {
-            if(value.data().name == getName(auth.currentUser.email))
+            if(value.data().name == locate.pathname.toString().substring(1,locate.pathname.toString().length))
+            {
+              roomId = value.data().roomId;
+              if(isAdmin())
                 user = value;
+            }
+
         });
-        if(user == null)
+        if(roomId == null && !isAdmin())
             return;
-        const id = user.data().roomId;
+        const id = roomId;
         const meetingId =
-        id == null ? await createMeeting({token: authToken}) : id;
+        id == null && isAdmin() ? await createMeeting({token: authToken}) : id;
+
+        if(isAdmin() && id == null)
+        {
+          await setUsers(user,meetingId,0,true,new Date());
+        }
+
         setMeetingId(meetingId);
+        setLoading(false);
     };
 
     const name = getName(auth.currentUser.email);
     function isAdmin() {
         return name == locate.pathname.toString().substring(1,locate.pathname.toString().length)
     }
-    return authToken && meetingId && sessions ? (
+    return (
+    !loading ? (
+    authToken && meetingId && sessions && (activeSession || isAdmin()) ? (
         <MeetingProvider
             config={{
                 meetingId:meetingId,
@@ -124,20 +160,20 @@ export default function Chat(props) {
             >
             <MeetingConsumer>
                 {() => <Container 
-                activeSession={activeSession} setActiveSession={setActiveSession}
+                activeSession={activeSession} setActiveSession={setActiveSession} isAdmin={isAdmin()}
                 sessions={sessions} joined={joined} setJoined={setJoined} setSessions={setSessions} meetingId={meetingId} />}
             </MeetingConsumer>
             </MeetingProvider>
-        ) : props.user && isAdmin() ?
-        (<JoinScreen user={props.user} getMeetingAndToken={getMeetingAndToken}/> ) : (<div>No meeting found</div>);
-
-
-
-}
+        ) : props.user ?
+        (<JoinScreen user={props.user} activeSession={activeSession} isAdmin={isAdmin()} getMeetingAndToken={getMeetingAndToken}/> )
+        : (<div>Please log in before joining</div>)) : (<div>Loading..</div>)
+)}
 
 
 const hasParticipant = (uname,data) => {
   let has = false;
+  if(data == null)
+  return false;
   data.forEach((value) => {
     value.participants.forEach((val) => {
       if(val.name == uname)
@@ -151,17 +187,24 @@ const hasParticipant = (uname,data) => {
 }
 
 
-function JoinScreen({ getMeetingAndToken }) {
+function JoinScreen({ getMeetingAndToken,isAdmin,user,activeSession }) {
     const onClick = async () => {
       await getMeetingAndToken();
     };
-    return (
+    useEffect(() => {
+      if(!isAdmin && activeSession)
+        onClick();
+    })
+    return (  (
       <div className="flex h-80">
+        {
+          isAdmin && !activeSession ? (
         <button onClick={onClick} className="m-auto relative bg-gradient-to-b from-slate-400 to-slate-500 w-60 h-16 rounded-xl text-center font-nunito-b
         drop-shadow-md overflow-hidden before:bg-gradient-to-b before:from-slate-400 before:to-slate-500 before:w-60 before:absolute before:h-0 before:left-0 before:bottom-0
         tracking-widest z-10 before:-z-10 before:brightness-85 hover:before:h-16 transition duration-300 hover:duration-300 before:duration-300 active:scale-90
-        ">START MEETING</button>
-      </div>
+        ">{"START MEETING"}</button>) : (<div>No Meeting Found</div>)
+        }
+      </div> )
     );
   }
 
@@ -192,11 +235,11 @@ function JoinScreen({ getMeetingAndToken }) {
           </div>
         ) : (
         <div className="flex flex-col h-100">
-            <div>Meeting Started!</div>
+            <div className="m-auto">{props.isAdmin && !props.activeSession ? "Meeting is ready!" : "Meeting started!"}</div>
             <button onClick={joinMeeting} className="m-auto relative bg-gradient-to-b from-slate-400 to-slate-500 w-60 h-16 rounded-xl text-center font-nunito-b
             drop-shadow-md overflow-hidden before:bg-gradient-to-b before:from-slate-400 before:to-slate-500 before:w-60 before:absolute before:h-0 before:left-0 before:bottom-0
             tracking-widest z-10 before:-z-10 before:brightness-85 hover:before:h-16 transition duration-300 hover:duration-300 before:duration-300 active:scale-90
-            ">JOIN</button>
+            ">{props.isAdmin && !props.activeSession ? "START MEETING" : "JOIN"}</button>
             </div>
         )}
       </div>
@@ -261,7 +304,6 @@ function JoinScreen({ getMeetingAndToken }) {
 
 
   function getActiveSession(data) {
-
     let d = null;
     data.forEach((value) => {
       if(value.end == null)
