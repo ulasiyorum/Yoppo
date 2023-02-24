@@ -21,7 +21,7 @@ export default function Body(props) {
                 path:'/' + user.name,
                 element: <Chat user={user}/>
             };
-            router.routes.push(newRoute);
+            router.push(newRoute);
             navigator(newRoute.path);
             setOpen(false);
         }).catch((err) => {

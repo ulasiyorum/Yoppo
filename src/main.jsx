@@ -5,7 +5,7 @@ import { fetchUsers } from './App'
 import './App.css'
 import App from './App'
 import Chat from './Components/Chat'
-import { createBrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, createBrowserRouter } from 'react-router-dom';
 import { RouterProvider } from 'react-router-dom';
 ReactDOM.createRoot(document.getElementById('root')).render(
     <Application/>,
@@ -51,7 +51,7 @@ function Application() {
 
       const documentss = await fetchUsers();
       documents = documentss;
-      router = createBrowserRouter(getOpenRoutes(documents));
+      router = getOpenRoutes(documents);
       setDocs(documentss);
       
     };
@@ -78,7 +78,17 @@ function Application() {
   return (
     <React.StrictMode>
     { !loading ? (
-    <RouterProvider router={router}/> ) : (<div>Loading</div>) }
+    <BrowserRouter>
+    <Routes>
+      {
+        router.map((value) => {
+          return <Route path={value.path} key={value.path} element={value.element}></Route>
+        })
+
+      }
+    </Routes>
+    </BrowserRouter>
+    ) : (<div>Loading</div>) }
     </React.StrictMode>
 
   );
