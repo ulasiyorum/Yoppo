@@ -255,9 +255,8 @@ function JoinScreen({ getMeetingAndToken,isAdmin,user,activeSession }) {
     const { webcamStream, micStream, webcamOn, micOn, isLocal } = useParticipant(
       props.participantId
     );
-    console.log(micStream);
     const videoStream = useMemo(() => {
-      if (webcamOn) {
+      if (webcamStream && webcamOn) {
         const mediaStream = new MediaStream();
         mediaStream.addTrack(webcamStream.track);
         return mediaStream;
